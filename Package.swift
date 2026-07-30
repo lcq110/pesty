@@ -7,9 +7,15 @@ let package = Package(
     products: [
         .executable(name: "Pesty", targets: ["Pesty"])
     ],
+    dependencies: [
+        .package(path: "Shared")
+    ],
     targets: [
         .executableTarget(
             name: "Pesty",
+            dependencies: [
+                .product(name: "PestyShared", package: "Shared")
+            ],
             path: "Sources/Pesty",
             swiftSettings: [
                 .unsafeFlags(["-parse-as-library"])

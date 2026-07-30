@@ -1,24 +1,9 @@
+import PestyShared
 import SwiftUI
 
-enum ClipType: String, Codable, CaseIterable {
-    case text
-    case richText
-    case link
-    case image
-    case file
-    case color
+typealias ClipType = PestyShared.ClipType
 
-    var label: String {
-        switch self {
-        case .text:     return "Text"
-        case .richText: return "Rich Text"
-        case .link:     return "Link"
-        case .image:    return "Image"
-        case .file:     return "File"
-        case .color:    return "Color"
-        }
-    }
-
+extension ClipType {
     var accent: Color {
         switch self {
         case .text:     return Color(red: 0.39, green: 0.55, blue: 0.98)

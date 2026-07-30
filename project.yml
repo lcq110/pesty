@@ -1,0 +1,181 @@
+name: PestyMobile
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  PestyShared:
+    path: Shared
+
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: H3WXHVTP97
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+
+targets:
+  PestyMobile:
+    type: application
+    platform: iOS
+    productName: Pesty
+    sources:
+      - path: Mobile/App
+      - path: Mobile/Resources
+        buildPhase: resources
+    info:
+      path: Mobile/Config/PestyMobile-Info.plist
+      properties:
+        CKSharingSupported: true
+        CFBundleDisplayName: Pesty
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: com.greycorelabs.pesty
+            CFBundleURLSchemes:
+              - pesty
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - remote-notification
+    entitlements:
+      path: Mobile/Config/PestyMobile.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.greycorelabs.pesty
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.security.application-groups:
+          - group.com.greycorelabs.pesty
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greycorelabs.pesty
+        PRODUCT_NAME: Pesty
+        PRODUCT_MODULE_NAME: PestyMobile
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Pesty
+        SUPPORTS_MACCATALYST: false
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: PestyShared
+      - target: PestyKeyboard
+        embed: true
+      - target: PestyShare
+        embed: true
+
+  PestyKeyboard:
+    type: app-extension
+    platform: iOS
+    productName: Pesty Keyboard
+    sources:
+      - path: Mobile/Extensions/Keyboard
+    info:
+      path: Mobile/Extensions/Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: Pesty Keyboard
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        NSExtension:
+          NSExtensionAttributes:
+            IsASCIICapable: true
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: true
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+    entitlements:
+      path: Mobile/Extensions/Keyboard/PestyKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.greycorelabs.pesty
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greycorelabs.pesty.keyboard
+        SKIP_INSTALL: true
+        APPLICATION_EXTENSION_API_ONLY: true
+    dependencies:
+      - package: PestyShared
+
+  PestyShare:
+    type: app-extension
+    platform: iOS
+    productName: Save to Pesty
+    sources:
+      - path: Mobile/Extensions/Share
+    info:
+      path: Mobile/Extensions/Share/Info.plist
+      properties:
+        CFBundleDisplayName: Save to Pesty
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsFileWithMaxCount: 20
+              NSExtensionActivationSupportsImageWithMaxCount: 20
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 20
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+    entitlements:
+      path: Mobile/Extensions/Share/PestyShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.greycorelabs.pesty
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greycorelabs.pesty.share
+        SKIP_INSTALL: true
+        APPLICATION_EXTENSION_API_ONLY: true
+    dependencies:
+      - package: PestyShared
+
+  PestyMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Mobile/Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greycorelabs.pesty.tests
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - target: PestyMobile
+      - package: PestyShared
+
+schemes:
+  PestyMobile:
+    build:
+      targets:
+        PestyMobile: all
+        PestyKeyboard: all
+        PestyShare: all
+        PestyMobileTests: [test]
+    run:
+      config: Debug
+      executable: PestyMobile
+      macroExpansion: PestyMobile
+    test:
+      config: Debug
+      gatherCoverageData: true
+      macroExpansion: PestyMobile
+      targets:
+        - PestyMobileTests

@@ -19,7 +19,7 @@ enum PasteService {
         case .image:
             break
         case .file:
-            let urls = item.fileURLs.compactMap { URL(string: $0) }
+            let urls = ClipboardStore.shared.resolvedFileURLs(for: item)
             if !urls.isEmpty { pasteboard.writeObjects(urls as [NSURL]) }
             if let t = item.text { pasteboard.setString(t, forType: .string) }
         case .color:
