@@ -93,14 +93,21 @@ VERSION=1.0.0 BUILD=1 ./scripts/build_app.sh
 open packaging/Pesty.app
 ```
 
-To produce a signed + notarized DMG (needs a Developer ID cert and an App Store Connect API key):
+To produce a signed + notarized CloudKit-enabled DMG, you need a Developer ID
+Application certificate, an App Store Connect API key, and a matching Developer
+ID provisioning profile that authorizes the production iCloud container:
 
 ```bash
 SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+DEVELOPER_ID_PROFILE="packaging/Pesty_DeveloperID.provisionprofile" \
 ASC_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_XXXX.p8" \
 ASC_KEY_ID="XXXX" ASC_ISSUER="<issuer-uuid>" \
 ./scripts/release_build.sh
 ```
+
+The release script embeds that profile, signs with the entitlements authorized by
+it, and checks the certificate Team ID, bundle ID, CloudKit container, production
+environment, notarization, and Gatekeeper result before producing the DMG.
 
 ## Project structure
 

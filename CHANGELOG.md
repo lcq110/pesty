@@ -4,7 +4,19 @@ All notable changes to Pesty are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- Release builds with CloudKit now require a matching Developer ID provisioning
+  profile, extract their signing entitlements from that profile, and verify the
+  final application and team identifiers before publication.
+- The release workflow no longer publishes ad-hoc signed builds as if CloudKit
+  were available.
+
 ## [1.2.0] - 2026-08-07
+
+> Retracted for CloudKit testing: the downloadable artifact was ad-hoc signed
+> and did not contain a Developer ID provisioning profile.
 
 ### Added
 - iOS companion app, custom keyboard, share extension, and CloudKit-backed

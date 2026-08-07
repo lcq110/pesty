@@ -8,13 +8,15 @@ on:
       - codex/ios-companion
     paths:
       - .release-version
+      - .github/workflows/release.yml
+      - scripts/sign_notarize.sh
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Build and publish macOS release
+    name: Build and publish CloudKit-authorized macOS release
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -37,36 +39,67 @@ jobs:
       - name: Test shared sync layer
         run: swift test --package-path Shared
 
-      - name: Detect signing credentials
+      - name: Check required signing assets
         id: signing
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+          MACOS_DEVELOPER_ID_PROFILE_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_PROFILE_BASE64 }}
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -euo pipefail
-          if [[ -n "$MACOS_CERT_P12_BASE64" && -n "$MACOS_CERT_PASSWORD" \
-             && -n "$KEYCHAIN_PASSWORD" && -n "$SIGN_IDENTITY" \
-             && -n "$ASC_KEY_P8_BASE64" && -n "$ASC_KEY_ID" \
-             && -n "$ASC_ISSUER_ID" ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          missing=()
+          for name in \
+            MACOS_CERT_P12_BASE64 MACOS_CERT_PASSWORD KEYCHAIN_PASSWORD \
+            SIGN_IDENTITY MACOS_DEVELOPER_ID_PROFILE_BASE64 \
+            ASC_KEY_P8_BASE64 ASC_KEY_ID ASC_ISSUER_ID; do
+            [[ -n "${!name}" ]] || missing+=("$name")
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "missing=${missing[*]}" >> "$GITHUB_OUTPUT"
           else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Mark invalid 1.2.0 release as prerelease
+        if: steps.signing.outputs.ready != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/invalid-release-notes.md <<'EOF'
+          Warning: this 1.2.0 artifact was built with an ad-hoc signature and does not include a Developer ID provisioning profile authorizing CloudKit.
+
+          Do not use this build to evaluate iCloud or CloudKit sync. A replacement release requires a Developer ID Application certificate, a matching Developer ID provisioning profile for `com.greycorelabs.pesty` and `iCloud.com.greycorelabs.pesty`, and Apple notarization credentials.
+          EOF
+          if gh release view v1.2.0 >/dev/null 2>&1; then
+            gh release edit v1.2.0 \
+              --prerelease \
+              --title "Pesty 1.2.0 (CloudKit signing invalid)" \
+              --notes-file /tmp/invalid-release-notes.md
+          fi
+
+      - name: Stop when CloudKit signing assets are missing
+        if: steps.signing.outputs.ready != 'true'
+        env:
+          MISSING: ${{ steps.signing.outputs.missing }}
+        run: |
+          echo "::error::Release blocked. Missing GitHub Actions secrets: $MISSING"
+          exit 1
+
       - name: Import Developer ID certificate
-        if: steps.signing.outputs.enabled == 'true'
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           set -euo pipefail
-          echo "$MACOS_CERT_P12_BASE64" | base64 --decode > /tmp/cert.p12
+          printf '%s' "$MACOS_CERT_P12_BASE64" | base64 --decode > /tmp/cert.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
@@ -77,60 +110,56 @@ jobs:
             -s -k "$KEYCHAIN_PASSWORD" build.keychain >/dev/null
           rm -f /tmp/cert.p12
 
+      - name: Install Developer ID CloudKit profile
+        env:
+          MACOS_DEVELOPER_ID_PROFILE_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$MACOS_DEVELOPER_ID_PROFILE_BASE64" | base64 --decode \
+            > packaging/Pesty_DeveloperID.provisionprofile
+          security cms -D -i packaging/Pesty_DeveloperID.provisionprofile \
+            > /tmp/developer-id-profile.plist
+          /usr/libexec/PlistBuddy -c 'Print :Name' /tmp/developer-id-profile.plist
+          /usr/libexec/PlistBuddy -c 'Print :ExpirationDate' /tmp/developer-id-profile.plist
+
       - name: Write App Store Connect API key
-        if: steps.signing.outputs.enabled == 'true'
         env:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
 
-      - name: Build, sign, and notarize
-        if: steps.signing.outputs.enabled == 'true'
+      - name: Build, sign, validate CloudKit, and notarize
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           BUILD: ${{ github.run_number }}
           SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+          DEVELOPER_ID_PROFILE: packaging/Pesty_DeveloperID.provisionprofile
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           export ASC_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
           ./scripts/release_build.sh
 
-      - name: Build ad-hoc signed package
-        if: steps.signing.outputs.enabled != 'true'
-        env:
-          VERSION: ${{ steps.ver.outputs.version }}
-          BUILD: ${{ github.run_number }}
-        run: ./scripts/build_unsigned_release.sh
-
       - name: Compute checksum and notes
         id: sum
         env:
           VERSION: ${{ steps.ver.outputs.version }}
-          SIGNED: ${{ steps.signing.outputs.enabled }}
         run: |
           set -euo pipefail
           dmg="packaging/Pesty-$VERSION.dmg"
           sha256="$(shasum -a 256 "$dmg" | awk '{print $1}')"
           echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
 
-          if [[ "$SIGNED" == "true" ]]; then
-            trust_note="Signed with Developer ID and notarized by Apple."
-          else
-            trust_note="Ad-hoc signed build. This fork has no Developer ID/notarization secrets, so macOS may require Control-click > Open on first launch."
-          fi
-
           cat > /tmp/release-notes.md <<EOF
           Pesty $VERSION is built from the codex/ios-companion branch.
 
-          macOS fix: the global shortcut now opens the paste bar from any Space without switching desktops.
+          The macOS app is signed with Developer ID, embeds a matching provisioning profile authorizing the production CloudKit container, and is notarized by Apple.
 
           SHA-256: \`$sha256\`
-
-          $trust_note
           EOF
 
       - name: Create or update GitHub release
@@ -143,7 +172,11 @@ jobs:
           tag="v$VERSION"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$DMG" --clobber
-            gh release edit "$tag" --title "Pesty $VERSION" --notes-file /tmp/release-notes.md
+            gh release edit "$tag" \
+              --latest \
+              --prerelease=false \
+              --title "Pesty $VERSION" \
+              --notes-file /tmp/release-notes.md
           else
             gh release create "$tag" "$DMG" \
               --target "$GITHUB_SHA" \
