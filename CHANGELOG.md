@@ -7,6 +7,8 @@ All notable changes to Pesty are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- Text, rich-text, and link cards can be edited from the context menu or with
+  `Command+E`; saving creates a new history card and leaves the original intact.
 - `Shift+Return` directly pastes the selected clip into the active app.
 - A local-only release driver builds, signs, validates, notarizes, and optionally
   publishes the CloudKit-enabled DMG from a clean `codex/ios-companion` checkout.

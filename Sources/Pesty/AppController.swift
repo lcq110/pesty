@@ -167,6 +167,20 @@ final class AppController: NSObject, NSApplicationDelegate {
         hideBar()
     }
 
+    func editItem(_ item: ClipItem) {
+        guard item.type.isTextEditable else { return }
+        suppressAutoHide = true
+        stopKeyMonitor()
+        store.editingItem = item
+    }
+
+    func finishClipEditing() {
+        suppressAutoHide = false
+        if barController?.isVisibleOnActiveSpace == true {
+            startKeyMonitor()
+        }
+    }
+
     func showSettings() {
         NSApp.activate(ignoringOtherApps: true)
         if let win = settingsWindow {
@@ -207,6 +221,12 @@ final class AppController: NSObject, NSApplicationDelegate {
         if cmd, let chars = event.charactersIgnoringModifiers, let n = Int(chars), (1...9).contains(n) {
             let items = store.visibleItems
             if n <= items.count { pasteItem(items[n - 1]) }
+            return nil
+        }
+
+        if cmd, code == kVK_ANSI_E,
+           let item = store.selectedItem, item.type.isTextEditable {
+            editItem(item)
             return nil
         }
 

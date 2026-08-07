@@ -82,10 +82,8 @@ final class ClipboardMonitor {
             let type: ClipType
             if rtf != nil {
                 type = .richText
-            } else if isLink(trimmed) {
-                type = .link
             } else {
-                type = .text
+                type = .inferred(fromPlainText: trimmed)
             }
             var item = ClipItem(type: type, text: string, rtfData: rtf)
             decorate(&item)
@@ -116,14 +114,6 @@ final class ClipboardMonitor {
         return rep.representation(using: .png, properties: [:])
     }
 
-    private func isLink(_ s: String) -> Bool {
-        guard !s.contains(" "), !s.contains("\n"),
-              let url = URL(string: s),
-              let scheme = url.scheme?.lowercased(),
-              ["http", "https"].contains(scheme),
-              url.host != nil else { return false }
-        return true
-    }
 }
 
 private extension NSColor {

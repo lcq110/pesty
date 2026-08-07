@@ -17,6 +17,13 @@ struct BarView: View {
         }
         .clipShape(RoundedCorners(radius: Theme.cornerRadius, corners: [.topLeft, .topRight]))
         .ignoresSafeArea()
+        .sheet(item: $store.editingItem, onDismiss: {
+            AppController.shared.finishClipEditing()
+        }) { item in
+            ClipEditorView(item: item) { text in
+                store.addEditedCopy(of: item, text: text)
+            }
+        }
     }
 
     private var topBar: some View {

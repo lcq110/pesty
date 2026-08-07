@@ -20,6 +20,7 @@ final class ClipboardStore {
     var source: BarSource = .history
     var searchText: String = ""
     var selectedID: UUID?
+    var editingItem: ClipItem?
     private(set) var selectionScrollRequest = 0
 
     var historyLimit: Int {
@@ -200,6 +201,21 @@ final class ClipboardStore {
             }
         }
         scheduleSave()
+    }
+
+    @discardableResult
+    func addEditedCopy(of item: ClipItem, text: String) -> ClipItem {
+        var copy = item.editedCopy(with: text)
+        copy.sourceBundleID = Bundle.main.bundleIdentifier
+        copy.sourceAppName = "Pesty"
+        history.insert(copy, at: 0)
+        trimHistory()
+        source = .history
+        searchText = ""
+        selectedID = copy.id
+        selectionScrollRequest += 1
+        scheduleSave()
+        return copy
     }
 
     func selectFirst() {

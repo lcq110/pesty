@@ -4,6 +4,23 @@ import SwiftUI
 typealias ClipType = PestyShared.ClipType
 
 extension ClipType {
+    var isTextEditable: Bool {
+        switch self {
+        case .text, .richText, .link: true
+        case .image, .file, .color: false
+        }
+    }
+
+    static func inferred(fromPlainText text: String) -> ClipType {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.contains(" "), !value.contains("\n"),
+              let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              url.host != nil else { return .text }
+        return .link
+    }
+
     var accent: Color {
         switch self {
         case .text:     return Color(red: 0.39, green: 0.55, blue: 0.98)

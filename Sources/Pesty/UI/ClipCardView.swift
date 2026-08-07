@@ -176,6 +176,10 @@ struct ClipCardView: View {
 
     @ViewBuilder
     private var menu: some View {
+        if item.type.isTextEditable {
+            Button("Edit as New Card…") { AppController.shared.editItem(item) }
+            Divider()
+        }
         Button("Paste") { AppController.shared.pasteItem(item) }
         Button("Copy") { AppController.shared.copyItem(item) }
         Divider()
