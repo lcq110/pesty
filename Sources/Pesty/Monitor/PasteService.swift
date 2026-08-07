@@ -53,7 +53,11 @@ enum PasteService {
         #else
         // Direct-download build: optionally paste straight into the active app by
         // synthesizing ⌘V. This requires the user's Accessibility grant.
-        guard Settings.shared.pasteDirectly && AXIsProcessTrusted() else { return }
+        guard Settings.shared.pasteDirectly else { return }
+        guard AXIsProcessTrusted() else {
+            ensureAccessibility(prompt: true)
+            return
+        }
         target.activate()
         waitForFrontmost(target, attempts: 20)
         #endif
@@ -63,12 +67,22 @@ enum PasteService {
     private static func waitForFrontmost(_ app: NSRunningApplication, attempts: Int) {
         guard attempts > 0, !app.isTerminated else { return }
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { sendCommandV() }
+            waitForShiftRelease()
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
             waitForFrontmost(app, attempts: attempts - 1)
         }
+    }
+
+    private static func waitForShiftRelease() {
+        if CGEventSource.flagsState(.combinedSessionState).contains(.maskShift) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+                waitForShiftRelease()
+            }
+            return
+        }
+        sendCommandV()
     }
 
     private static func sendCommandV() {

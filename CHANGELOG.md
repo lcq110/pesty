@@ -21,6 +21,8 @@ All notable changes to Pesty are documented here. The format is based on
   are used only on the local release Mac.
 
 ### Fixed
+- Direct paste now waits for Shift to be released before sending `Command+V`,
+  so `Shift+Return` reaches the previously active app instead of stopping at copy.
 - Release builds with CloudKit now require a matching Developer ID provisioning
   profile, extract their signing entitlements from that profile, and verify the
   final application and team identifiers before publication.
