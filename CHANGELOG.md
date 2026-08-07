@@ -6,12 +6,25 @@ All notable changes to Pesty are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- A local-only release driver builds, signs, validates, notarizes, and optionally
+  publishes the CloudKit-enabled DMG from a clean `codex/ios-companion` checkout.
+- An ignored local configuration template keeps signing identity and credential
+  paths out of the repository.
+
+### Changed
+- GitHub Actions now has read-only repository access and only builds and tests
+  unsigned development artifacts. Developer ID and CloudKit signing are blocked
+  explicitly in GitHub Actions.
+- CloudKit Developer ID profiles, certificate private keys, and notarization keys
+  are used only on the local release Mac.
+
 ### Fixed
 - Release builds with CloudKit now require a matching Developer ID provisioning
   profile, extract their signing entitlements from that profile, and verify the
   final application and team identifiers before publication.
-- The release workflow no longer publishes ad-hoc signed builds as if CloudKit
-  were available.
+- Local publication refuses dirty or unpushed source trees and never overwrites
+  an existing release tag.
 
 ## [1.2.0] - 2026-08-07
 

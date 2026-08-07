@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, codex/ios-companion]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build (Swift 6, macOS)
@@ -27,3 +30,23 @@ jobs:
 
       - name: Build app bundle
         run: VERSION=0.0.0 BUILD=ci ./scripts/build_app.sh
+
+      - name: Verify distribution signing remains local
+        run: |
+          set -euo pipefail
+          test -x scripts/local_release.sh
+          tracked_signing_assets="$(
+            git ls-files | grep -E '(^|/)\.local-release\.env$|\.(p12|p8|provisionprofile|mobileprovision)$' || true
+          )"
+          if [[ -n "$tracked_signing_assets" ]]; then
+            echo "::error::Signing assets must not be committed:"
+            echo "$tracked_signing_assets"
+            exit 1
+          fi
+
+          test ! -e packaging/Pesty.app/Contents/embedded.provisionprofile
+          if codesign --verify --deep --strict packaging/Pesty.app >/dev/null 2>&1; then
+            echo "::error::CI app bundle unexpectedly has a distribution signature."
+            exit 1
+          fi
+          echo "CI bundle is unsigned for distribution; CloudKit signing is local-only."

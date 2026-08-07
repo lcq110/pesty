@@ -8,16 +8,16 @@
 
 Your clipboard history as a beautiful, color-coded strip that slides up from the bottom of your screen.
 
-[![Download](https://img.shields.io/github/v/release/momenbasel/pesty?label=download&style=flat-square)](https://github.com/momenbasel/pesty/releases/latest)
+[![Download](https://img.shields.io/github/v/release/lcq110/pesty?label=download&style=flat-square)](https://github.com/lcq110/pesty/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
 ![Universal](https://img.shields.io/badge/Universal-Apple%20Silicon%20%2B%20Intel-orange?style=flat-square)
 
-[**Website**](https://www.moamenbasel.com/pesty/) · [Download](https://github.com/momenbasel/pesty/releases/latest) · [Homebrew](#install) · [Mac App Store](https://apps.apple.com/us/app/pesty-clipboard-manager/id6784511397)
+[**Website**](https://www.moamenbasel.com/pesty/) · [Download](https://github.com/lcq110/pesty/releases/latest) · [Homebrew](#install) · [Mac App Store](https://apps.apple.com/us/app/pesty-clipboard-manager/id6784511397)
 
 <a href="https://apps.apple.com/us/app/pesty-clipboard-manager/id6784511397"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-mac-app-store/black/en-us?size=250x83" alt="Download Pesty on the Mac App Store" height="56" /></a>
 
-<sub>Pesty is **free and open source**. The one-time fee on the Mac App Store is optional - it only helps cover the yearly Apple Developer Program fee that keeps the app signed and notarized. You never have to pay it: get the exact same app for free via [Homebrew](#install) or [direct download](https://github.com/momenbasel/pesty/releases/latest).</sub>
+<sub>Pesty is **free and open source**. The one-time fee on the Mac App Store is optional - it only helps cover the yearly Apple Developer Program fee that keeps the app signed and notarized. You never have to pay it: get the exact same app for free via [Homebrew](#install) or [direct download](https://github.com/lcq110/pesty/releases/latest).</sub>
 
 <img src="docs/assets/demo.gif" width="820" alt="Pesty clipboard manager demo - color-coded clipboard strip with keyboard navigation on macOS" />
 
@@ -55,7 +55,7 @@ brew install --cask momenbasel/pesty/pesty
 
 ### Direct download
 
-1. Download `Pesty-x.y.z.dmg` from the [latest release](https://github.com/momenbasel/pesty/releases/latest).
+1. Download `Pesty-x.y.z.dmg` from the [latest release](https://github.com/lcq110/pesty/releases/latest).
 2. Open the DMG and drag **Pesty** to **Applications**.
 3. Launch Pesty. It lives in your menu bar.
 
@@ -85,29 +85,43 @@ The build is signed with a Developer ID and notarized by Apple, so it opens with
 Requires macOS 14+ and Xcode 16+ (Swift 6).
 
 ```bash
-git clone https://github.com/momenbasel/pesty.git
+git clone --branch codex/ios-companion --single-branch https://github.com/lcq110/pesty.git
 cd pesty
 swift run            # run in place
-# or build a distributable .app:
+# or build an unsigned development .app:
 VERSION=1.0.0 BUILD=1 ./scripts/build_app.sh
 open packaging/Pesty.app
 ```
 
-To produce a signed + notarized CloudKit-enabled DMG, you need a Developer ID
-Application certificate, an App Store Connect API key, and a matching Developer
-ID provisioning profile that authorizes the production iCloud container:
+GitHub Actions only compiles and tests the source. It never receives a Developer
+ID certificate, provisioning profile, or App Store Connect API key, and it never
+publishes a CloudKit-enabled artifact.
+
+### Local CloudKit release
+
+Distribution signing and notarization run only on the release Mac. Install the
+Developer ID Application certificate and its private key in Keychain, then copy
+the local configuration template:
 
 ```bash
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-DEVELOPER_ID_PROFILE="packaging/Pesty_DeveloperID.provisionprofile" \
-ASC_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_XXXX.p8" \
-ASC_KEY_ID="XXXX" ASC_ISSUER="<issuer-uuid>" \
-./scripts/release_build.sh
+cp .local-release.env.example .local-release.env
+# Edit .local-release.env with local absolute paths and identity values.
+./scripts/local_release.sh
 ```
 
-The release script embeds that profile, signs with the entitlements authorized by
-it, and checks the certificate Team ID, bundle ID, CloudKit container, production
-environment, notarization, and Gatekeeper result before producing the DMG.
+This produces and validates `packaging/Pesty-x.y.z.dmg` without uploading it.
+When ready, rebuild, revalidate, and publish in one local run with:
+
+```bash
+./scripts/local_release.sh --publish
+```
+
+Publishing requires an authenticated GitHub CLI. The script requires a clean
+`codex/ios-companion` checkout that exactly matches the remote branch, refuses to
+replace an existing version tag, and creates the GitHub Release only after the
+certificate Team ID, bundle ID, production CloudKit profile, notarization, and
+Gatekeeper checks pass. `.local-release.env`, `.p12`, `.p8`, and provisioning
+profiles are ignored by Git and must never be committed.
 
 ## Project structure
 

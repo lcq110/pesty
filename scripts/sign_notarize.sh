@@ -2,15 +2,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "Refusing to access CloudKit signing assets in GitHub Actions." >&2
+    exit 1
+fi
+
 VERSION="${VERSION:-1.0.0}"
 APP="packaging/Pesty.app"
 DMG="packaging/Pesty-$VERSION.dmg"
-PROFILE="${DEVELOPER_ID_PROFILE:-packaging/Pesty_DeveloperID.provisionprofile}"
 
+: "${DEVELOPER_ID_PROFILE:?Set DEVELOPER_ID_PROFILE to the local Developer ID profile path}"
 : "${SIGN_IDENTITY:?Set SIGN_IDENTITY to a Developer ID Application identity}"
 : "${ASC_KEY:?Set ASC_KEY to the App Store Connect API private key path}"
 : "${ASC_KEY_ID:?Set ASC_KEY_ID to the App Store Connect API key ID}"
 : "${ASC_ISSUER:?Set ASC_ISSUER to the App Store Connect issuer ID}"
+
+PROFILE="$DEVELOPER_ID_PROFILE"
 
 [ -d "$APP" ] || { echo "Missing $APP — run build_app.sh first"; exit 1; }
 [ -f "$PROFILE" ] || {

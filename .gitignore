@@ -16,3 +16,10 @@ packaging/Pesty.iconset/
 
 packaging/*.pkg
 packaging/*.provisionprofile
+
+# Local Apple distribution credentials and configuration
+.local-release.env
+*.p12
+*.p8
+*.provisionprofile
+*.mobileprovision
