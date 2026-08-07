@@ -20,6 +20,7 @@ final class ClipboardStore {
     var source: BarSource = .history
     var searchText: String = ""
     var selectedID: UUID?
+    private(set) var selectionScrollRequest = 0
 
     var historyLimit: Int {
         get { Settings.shared.historyLimit }
@@ -201,16 +202,22 @@ final class ClipboardStore {
         scheduleSave()
     }
 
-    func selectFirst() { selectedID = visibleItems.first?.id }
+    func selectFirst() {
+        selectedID = visibleItems.first?.id
+        selectionScrollRequest += 1
+    }
 
     func moveSelection(by delta: Int) {
         let items = visibleItems
         guard !items.isEmpty else { return }
         guard let id = selectedID, let idx = items.firstIndex(where: { $0.id == id }) else {
-            selectedID = items.first?.id; return
+            selectedID = items.first?.id
+            selectionScrollRequest += 1
+            return
         }
         let next = max(0, min(items.count - 1, idx + delta))
         selectedID = items[next].id
+        selectionScrollRequest += 1
     }
 
     func imageURL(for item: ClipItem) -> URL? {

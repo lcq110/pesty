@@ -25,6 +25,18 @@ enum Theme {
 }
 
 extension Date {
+    private static let clipDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
+    private static let clipRelativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter
+    }()
+
     var clipRelative: String {
         let secs = -timeIntervalSinceNow
         switch secs {
@@ -33,18 +45,13 @@ extension Date {
         case ..<3600:     return "\(Int(secs / 60))m"
         case ..<86_400:   return "\(Int(secs / 3600))h"
         case ..<604_800:  return "\(Int(secs / 86_400))d"
-        default:
-            let f = DateFormatter()
-            f.dateFormat = "MMM d"
-            return f.string(from: self)
+        default:          return Self.clipDateFormatter.string(from: self)
         }
     }
 
     var clipRelativeLong: String {
         let secs = -timeIntervalSinceNow
         if secs < 8 { return "Just now" }
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .full
-        return f.localizedString(for: self, relativeTo: Date())
+        return Self.clipRelativeFormatter.localizedString(for: self, relativeTo: Date())
     }
 }

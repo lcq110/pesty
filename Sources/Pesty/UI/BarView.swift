@@ -87,10 +87,11 @@ struct BarView: View {
     }
 
     private var strip: some View {
-        ScrollViewReader { proxy in
+        let items = store.visibleItems
+        return ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: Theme.cardSpacing) {
-                    ForEach(Array(store.visibleItems.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         ClipCardView(item: item,
                                      index: index,
                                      selected: item.id == store.selectedID)
@@ -103,15 +104,15 @@ struct BarView: View {
                 .padding(.horizontal, 18)
                 .padding(.top, 4)
                 .padding(.bottom, 18)
-                .animation(.spring(response: 0.34, dampingFraction: 0.8), value: store.visibleItems.count)
+                .animation(.spring(response: 0.34, dampingFraction: 0.8), value: items.count)
             }
-            .onChange(of: store.selectedID) { _, id in
-                guard let id else { return }
+            .onChange(of: store.selectionScrollRequest) {
+                guard let id = store.selectedID else { return }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
                     proxy.scrollTo(id, anchor: .center)
                 }
             }
-            .overlay { if store.visibleItems.isEmpty { emptyState } }
+            .overlay { if items.isEmpty { emptyState } }
         }
         .frame(maxHeight: .infinity)
     }

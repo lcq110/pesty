@@ -10,26 +10,33 @@ struct ClipCardView: View {
     private var headerColor: Color { SourceColor.color(for: item.sourceBundleID) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            body_
+        Button {
+            store.selectedID = item.id
+        } label: {
+            VStack(spacing: 0) {
+                header
+                body_
+            }
+            .frame(width: Theme.cardWidth)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
+                    .strokeBorder(selected ? Theme.selection : Theme.cardBorder,
+                                  lineWidth: selected ? 2.5 : 1)
+            )
+            .shadow(color: .black.opacity(selected ? 0.30 : 0.15),
+                    radius: selected ? 8 : 3, y: selected ? 4 : 2)
+            .scaleEffect(hovering && !selected ? 1.008 : 1.0)
+            .animation(.easeOut(duration: 0.08), value: selected)
+            .animation(.easeOut(duration: 0.08), value: hovering)
+            .contentShape(Rectangle())
         }
-        .frame(width: Theme.cardWidth)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
-                .strokeBorder(selected ? Theme.selection : Theme.cardBorder,
-                              lineWidth: selected ? 2.5 : 1)
-        )
-        .shadow(color: .black.opacity(selected ? 0.35 : 0.18),
-                radius: selected ? 12 : 5, y: selected ? 5 : 2)
-        .scaleEffect(hovering && !selected ? 1.015 : 1.0)
-        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: selected)
-        .animation(.easeOut(duration: 0.14), value: hovering)
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .onTapGesture(count: 2) { AppController.shared.pasteItem(item) }
-        .onTapGesture { store.selectedID = item.id }
+        .simultaneousGesture(
+            TapGesture(count: 2)
+                .onEnded { AppController.shared.pasteItem(item) }
+        )
         .contextMenu { menu }
     }
 
@@ -83,11 +90,7 @@ struct ClipCardView: View {
     private var content: some View {
         switch item.type {
         case .image:
-            if let img = store.loadImage(for: item) {
-                Image(nsImage: img)
-                    .resizable().interpolation(.medium).scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else { placeholder("photo") }
+            ClipImagePreview(url: store.imageURL(for: item))
         case .color:
             ZStack {
                 RoundedRectangle(cornerRadius: 8).fill(Color(hex: item.colorHex ?? "#000") ?? .black)

@@ -21,6 +21,8 @@ All notable changes to Pesty are documented here. The format is based on
   are used only on the local release Mac.
 
 ### Fixed
+- Clipboard cards now select immediately, load cached image thumbnails off the
+  main actor, and reserve animated centering for keyboard navigation.
 - Direct paste now waits for Shift to be released before sending `Command+V`,
   so `Shift+Return` reaches the previously active app instead of stopping at copy.
 - Release builds with CloudKit now require a matching Developer ID provisioning
