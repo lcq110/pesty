@@ -20,6 +20,10 @@ let package = Package(
             swiftSettings: [
                 .unsafeFlags(["-parse-as-library"])
             ]
+        ),
+        .testTarget(
+            name: "PestyTests",
+            dependencies: ["Pesty"]
         )
     ],
     swiftLanguageModes: [.v5]

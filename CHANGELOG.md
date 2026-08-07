@@ -4,6 +4,18 @@ All notable changes to Pesty are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-08-07
+
+### Added
+- iOS companion app, custom keyboard, share extension, and CloudKit-backed
+  snapshot synchronization from the `codex/ios-companion` branch.
+
+### Fixed
+- The macOS global shortcut now opens Pesty on the currently active Space
+  without switching back to the Space where Pesty was previously shown.
+- Shortcut toggling no longer treats a panel visible only on another Space as
+  visible on the current Space.
+
 ## [1.1.0] - 2026-06-26
 
 Visual overhaul to match Paste, plus iCloud sync.
@@ -25,6 +37,7 @@ Visual overhaul to match Paste, plus iCloud sync.
 - Removed the unnecessary Apple Events entitlement.
 
 [1.1.0]: https://github.com/momenbasel/pesty/releases/tag/v1.1.0
+[1.2.0]: https://github.com/lcq110/pesty/releases/tag/v1.2.0
 
 ## [1.0.0] - 2026-06-26
 
