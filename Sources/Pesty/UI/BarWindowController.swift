@@ -8,9 +8,8 @@ final class BarPanel: NSPanel {
     ]
 
     static let spaceCollectionBehavior: NSWindow.CollectionBehavior = [
-        .canJoinAllSpaces,
-        .fullScreenAuxiliary,
-        .stationary
+        .moveToActiveSpace,
+        .fullScreenAuxiliary
     ]
 
     override var canBecomeKey: Bool { true }
@@ -58,6 +57,9 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
         let onScreen = NSRect(x: vf.minX, y: vf.minY, width: vf.width, height: height)
         let offScreen = NSRect(x: vf.minX, y: vf.minY - height, width: vf.width, height: height)
 
+        if panel.isVisible && !panel.isOnActiveSpace {
+            panel.orderOut(nil)
+        }
         panel.setFrame(offScreen, display: false)
         // Keep the current app and Space active. Activating this accessory app
         // can otherwise switch macOS back to the Space where Pesty was last

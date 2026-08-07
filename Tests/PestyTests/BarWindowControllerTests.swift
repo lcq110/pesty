@@ -4,10 +4,11 @@ import XCTest
 
 @MainActor
 final class BarWindowControllerTests: XCTestCase {
-    func testPasteBarCanAppearWithoutActivatingPestyOnEverySpace() {
+    func testPasteBarMovesToTheActiveSpace() {
         XCTAssertTrue(BarPanel.presentationStyleMask.contains(.nonactivatingPanel))
-        XCTAssertTrue(BarPanel.spaceCollectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertTrue(BarPanel.spaceCollectionBehavior.contains(.moveToActiveSpace))
         XCTAssertTrue(BarPanel.spaceCollectionBehavior.contains(.fullScreenAuxiliary))
-        XCTAssertFalse(BarPanel.spaceCollectionBehavior.contains(.moveToActiveSpace))
+        XCTAssertFalse(BarPanel.spaceCollectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertFalse(BarPanel.spaceCollectionBehavior.contains(.stationary))
     }
 }
