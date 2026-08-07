@@ -31,9 +31,6 @@ final class ClipboardStore {
     private var filesDir: URL
     private var baseDir: URL
     private var saveWorkItem: DispatchWorkItem?
-    private var cloudSyncTask: Task<Void, Never>?
-    private var cloudPollTask: Task<Void, Never>?
-    private let cloudKit = PestyCloudKitBridge()
 
     private var fileWatch: DispatchSourceFileSystemObject?
     private var ignoreWatchUntil: Date = .distantPast
@@ -69,8 +66,6 @@ final class ClipboardStore {
         load()
         if Settings.shared.iCloudSync {
             startWatching()
-            scheduleCloudSync(immediate: true)
-            startCloudPolling()
         }
     }
 
@@ -297,7 +292,6 @@ final class ClipboardStore {
 
     func saveNow() {
         writeSnapshotToDisk()
-        scheduleCloudSync()
     }
 
     private func writeSnapshotToDisk() {
@@ -335,13 +329,6 @@ final class ClipboardStore {
         prepareDirectories()
         if enabled {
             startWatching()
-            scheduleCloudSync(immediate: true)
-            startCloudPolling()
-        } else {
-            cloudSyncTask?.cancel()
-            cloudSyncTask = nil
-            cloudPollTask?.cancel()
-            cloudPollTask = nil
         }
     }
 
@@ -381,61 +368,6 @@ final class ClipboardStore {
         apply(merged)
         selectFirst()
         saveNow()
-    }
-
-    private func scheduleCloudSync(immediate: Bool = false) {
-        guard Settings.shared.iCloudSync else { return }
-        cloudSyncTask?.cancel()
-
-        let local = currentSnapshot
-        let imagesDirectory = imagesDir
-        let filesDirectory = filesDir
-        let cloudKit = cloudKit
-        cloudSyncTask = Task { [weak self] in
-            do {
-                if !immediate {
-                    try await Task.sleep(for: .milliseconds(700))
-                }
-                try Task.checkCancellation()
-                let cloudSnapshot = try await cloudKit.reconcile(
-                    local: local,
-                    imagesDirectory: imagesDirectory,
-                    filesDirectory: filesDirectory
-                )
-                try Task.checkCancellation()
-                guard let self else { return }
-
-                let current = self.currentSnapshot
-                let merged = SnapshotMerger.merge(
-                    local: current,
-                    remote: cloudSnapshot,
-                    historyLimit: self.historyLimit
-                )
-                guard merged != current else { return }
-                self.apply(merged)
-                self.selectFirst()
-                self.writeSnapshotToDisk()
-            } catch is CancellationError {
-                return
-            } catch {
-                NSLog("Pesty CloudKit sync failed: %@", error.localizedDescription)
-            }
-        }
-    }
-
-    private func startCloudPolling() {
-        cloudPollTask?.cancel()
-        cloudPollTask = Task { [weak self] in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(30))
-                } catch {
-                    return
-                }
-                guard let self else { return }
-                self.scheduleCloudSync(immediate: true)
-            }
-        }
     }
 
     private func startWatching() {
