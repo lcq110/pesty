@@ -6,15 +6,6 @@ import Carbon.HIToolbox
 final class AppController: NSObject, NSApplicationDelegate {
     static let shared = AppController()
 
-    enum ReturnKeyAction: Equatable {
-        case paste
-        case copy
-    }
-
-    static func returnKeyAction(for flags: NSEvent.ModifierFlags) -> ReturnKeyAction {
-        flags.contains(.shift) ? .copy : .paste
-    }
-
     let store = ClipboardStore.shared
     let monitor = ClipboardMonitor()
 
@@ -225,13 +216,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             else { hideBar() }
             return nil
         case kVK_Return, kVK_ANSI_KeypadEnter:
-            switch Self.returnKeyAction(for: flags) {
-            case .paste:
-                pasteSelected()
-            case .copy:
-                if let item = store.selectedItem { copyItem(item) }
-            }
-            return nil
+            pasteSelected(); return nil
         case kVK_LeftArrow, kVK_UpArrow:
             store.moveSelection(by: -1); return nil
         case kVK_RightArrow, kVK_DownArrow:
