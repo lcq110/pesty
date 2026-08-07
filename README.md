@@ -75,6 +75,7 @@ The build is signed with a Developer ID and notarized by Apple, so it opens with
 | `⌘⇧V` | Show / hide the strip (configurable) |
 | `←` `→` `↑` `↓` | Move selection |
 | `return` | Paste selected clip |
+| `⇧return` | Copy selected clip without pasting |
 | `⌘1`–`⌘9` | Quick-paste the Nth clip |
 | `⌘⌫` | Delete selected clip |
 | type anything | Search |

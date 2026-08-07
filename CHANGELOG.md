@@ -7,6 +7,7 @@ All notable changes to Pesty are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- `Shift+Return` copies the selected clip without pasting it into the active app.
 - A local-only release driver builds, signs, validates, notarizes, and optionally
   publishes the CloudKit-enabled DMG from a clean `codex/ios-companion` checkout.
 - An ignored local configuration template keeps signing identity and credential
