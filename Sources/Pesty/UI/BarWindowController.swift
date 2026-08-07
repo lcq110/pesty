@@ -2,6 +2,17 @@ import AppKit
 import SwiftUI
 
 final class BarPanel: NSPanel {
+    static let presentationStyleMask: NSWindow.StyleMask = [
+        .borderless,
+        .nonactivatingPanel
+    ]
+
+    static let spaceCollectionBehavior: NSWindow.CollectionBehavior = [
+        .canJoinAllSpaces,
+        .fullScreenAuxiliary,
+        .stationary
+    ]
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
@@ -14,7 +25,7 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
     init() {
         let panel = BarPanel(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 360),
-            styleMask: [.borderless],
+            styleMask: BarPanel.presentationStyleMask,
             backing: .buffered,
             defer: false)
         panel.isFloatingPanel = true
@@ -23,7 +34,7 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
         panel.isOpaque = false
         panel.hasShadow = true
         panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.collectionBehavior = BarPanel.spaceCollectionBehavior
         panel.isMovable = false
         panel.contentView = NSHostingView(rootView: BarView())
         super.init(window: panel)
@@ -31,6 +42,11 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) unavailable") }
+
+    var isVisibleOnActiveSpace: Bool {
+        guard let panel = window else { return false }
+        return panel.isVisible && panel.isOnActiveSpace
+    }
 
     func show() {
         guard let panel = window else { return }
@@ -43,8 +59,12 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
         let offScreen = NSRect(x: vf.minX, y: vf.minY - height, width: vf.width, height: height)
 
         panel.setFrame(offScreen, display: false)
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+        // A global shortcut must not activate Pesty itself: activating an
+        // accessory app can switch macOS back to the Space where it was last
+        // active. A non-activating panel can become key for navigation while
+        // the user's current app and Space remain active.
+        panel.orderFrontRegardless()
+        panel.makeKey()
 
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.22

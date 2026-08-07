@@ -122,7 +122,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
 
     func toggleBar() {
-        if let bar = barController, bar.window?.isVisible == true {
+        if barController?.isVisibleOnActiveSpace == true {
             hideBar()
         } else {
             showBar()
