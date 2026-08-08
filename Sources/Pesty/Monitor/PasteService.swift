@@ -3,9 +3,15 @@ import Carbon.HIToolbox
 
 @MainActor
 enum PasteService {
+    enum PasteMode {
+        case formatted
+        case plainText
+    }
 
     @discardableResult
-    static func copy(_ item: ClipItem, to pasteboard: NSPasteboard = .general) -> Int {
+    static func copy(_ item: ClipItem,
+                     mode: PasteMode = .formatted,
+                     to pasteboard: NSPasteboard = .general) -> Int {
         if item.type == .image {
             guard let img = ClipboardStore.shared.loadImage(for: item) else {
                 return pasteboard.changeCount
@@ -28,7 +34,9 @@ enum PasteService {
                 pasteboard.setString(hex, forType: .string)
             }
         case .richText:
-            if let rtf = item.rtfData { pasteboard.setData(rtf, forType: .rtf) }
+            if mode == .formatted, let rtf = item.rtfData {
+                pasteboard.setData(rtf, forType: .rtf)
+            }
             if let t = item.text { pasteboard.setString(t, forType: .string) }
         case .text, .link:
             if let t = item.text { pasteboard.setString(t, forType: .string) }
@@ -38,8 +46,9 @@ enum PasteService {
 
     static func paste(_ item: ClipItem,
                       into targetApp: NSRunningApplication?,
-                      monitor: ClipboardMonitor) {
-        let change = copy(item)
+                      monitor: ClipboardMonitor,
+                      mode: PasteMode = .formatted) {
+        let change = copy(item, mode: mode)
         monitor.suppressUntilChangeCount = change
         if Settings.shared.playSound { NSSound(named: "Pop")?.play() }
 

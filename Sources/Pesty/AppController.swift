@@ -150,10 +150,10 @@ final class AppController: NSObject, NSApplicationDelegate {
         barController?.hide()
     }
 
-    func pasteSelected() {
+    func pasteSelected(mode: PasteService.PasteMode = .formatted) {
         guard let item = store.selectedItem else { return }
         hideBar()
-        PasteService.paste(item, into: previousApp, monitor: monitor)
+        PasteService.paste(item, into: previousApp, monitor: monitor, mode: mode)
     }
 
     func pasteItem(_ item: ClipItem) {
@@ -236,7 +236,8 @@ final class AppController: NSObject, NSApplicationDelegate {
             else { hideBar() }
             return nil
         case kVK_Return, kVK_ANSI_KeypadEnter:
-            pasteSelected(); return nil
+            pasteSelected(mode: flags.contains(.shift) ? .plainText : .formatted)
+            return nil
         case kVK_LeftArrow, kVK_UpArrow:
             store.moveSelection(by: -1); return nil
         case kVK_RightArrow, kVK_DownArrow:
