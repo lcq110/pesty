@@ -34,8 +34,14 @@ enum PasteService {
                 pasteboard.setString(hex, forType: .string)
             }
         case .richText:
-            if mode == .formatted, let rtf = item.rtfData {
-                pasteboard.setData(rtf, forType: .rtf)
+            if mode == .formatted {
+                if let rtf = item.rtfData {
+                    pasteboard.setData(rtf, forType: .rtf)
+                }
+                if let html = item.htmlData ?? convertedHTML(from: item.rtfData) {
+                    pasteboard.setData(html, forType: .html)
+                    pasteboard.setData(html, forType: .legacyHTML)
+                }
             }
             if let t = item.text { pasteboard.setString(t, forType: .string) }
         case .text, .link:
@@ -68,26 +74,26 @@ enum PasteService {
             return
         }
         target.activate()
-        waitForFrontmost(target, attempts: 20)
+        pasteWhenReady(target, attempts: 100)
         #endif
     }
 
     #if !MAS
-    private static func waitForFrontmost(_ app: NSRunningApplication, attempts: Int) {
-        guard attempts > 0, !app.isTerminated else { return }
-        if NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier {
-            waitForShiftRelease()
+    private static func pasteWhenReady(_ app: NSRunningApplication, attempts: Int) {
+        guard !app.isTerminated else { return }
+        let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            == app.processIdentifier
+        if !isFrontmost {
+            guard attempts > 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                pasteWhenReady(app, attempts: attempts - 1)
+            }
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-            waitForFrontmost(app, attempts: attempts - 1)
-        }
-    }
 
-    private static func waitForShiftRelease() {
         if CGEventSource.flagsState(.combinedSessionState).contains(.maskShift) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-                waitForShiftRelease()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                pasteWhenReady(app, attempts: attempts)
             }
             return
         }
@@ -112,4 +118,17 @@ enum PasteService {
         return AXIsProcessTrustedWithOptions(opts)
     }
     #endif
+
+    private static func convertedHTML(from rtfData: Data?) -> Data? {
+        guard let rtfData,
+              let attributed = try? NSAttributedString(
+                data: rtfData,
+                options: [.documentType: NSAttributedString.DocumentType.rtf],
+                documentAttributes: nil
+              ) else { return nil }
+        return try? attributed.data(
+            from: NSRange(location: 0, length: attributed.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.html]
+        )
+    }
 }

@@ -29,11 +29,11 @@ final class ClipboardMonitor {
         guard current != lastChangeCount else { return }
         lastChangeCount = current
         if current == suppressUntilChangeCount { return }
-        guard let item = makeItem() else { return }
+        guard let item = makeItem(from: pasteboard) else { return }
         ClipboardStore.shared.addCaptured(item)
     }
 
-    private func makeItem() -> ClipItem? {
+    func makeItem(from pasteboard: NSPasteboard) -> ClipItem? {
         let types = pasteboard.types ?? []
 
         if types.contains(NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")) { return nil }
@@ -77,15 +77,24 @@ final class ClipboardMonitor {
         }
 
         let rtf = pasteboard.data(forType: .rtf)
-        if let string = pasteboard.string(forType: .string), !string.isEmpty {
+        let html = pasteboard.data(forType: .html)
+            ?? pasteboard.data(forType: .legacyHTML)
+        let string = pasteboard.string(forType: .string)
+            ?? richTextString(rtf: rtf, html: html)
+        if let string, !string.isEmpty {
             let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
             let type: ClipType
-            if rtf != nil {
+            if rtf != nil || html != nil {
                 type = .richText
             } else {
                 type = .inferred(fromPlainText: trimmed)
             }
-            var item = ClipItem(type: type, text: string, rtfData: rtf)
+            var item = ClipItem(
+                type: type,
+                text: string,
+                rtfData: rtf,
+                htmlData: html
+            )
             decorate(&item)
             return item
         }
@@ -103,6 +112,26 @@ final class ClipboardMonitor {
         types.contains { $0.rawValue.localizedCaseInsensitiveContains("color") }
     }
 
+    private func richTextString(rtf: Data?, html: Data?) -> String? {
+        if let rtf,
+           let value = try? NSAttributedString(
+            data: rtf,
+            options: [.documentType: NSAttributedString.DocumentType.rtf],
+            documentAttributes: nil
+           ) {
+            return value.string
+        }
+        if let html,
+           let value = try? NSAttributedString(
+            data: html,
+            options: [.documentType: NSAttributedString.DocumentType.html],
+            documentAttributes: nil
+           ) {
+            return value.string
+        }
+        return nil
+    }
+
     private static func sha256Hex(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
@@ -114,6 +143,10 @@ final class ClipboardMonitor {
         return rep.representation(using: .png, properties: [:])
     }
 
+}
+
+extension NSPasteboard.PasteboardType {
+    static let legacyHTML = NSPasteboard.PasteboardType("Apple HTML pasteboard type")
 }
 
 private extension NSColor {

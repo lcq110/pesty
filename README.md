@@ -35,7 +35,7 @@ It is a faithful, native reimplementation of the Paste experience - built in **S
 
 - **Slide-up strip** - full-width, translucent bar that springs up from the bottom of the active screen.
 - **Color-coded cards** - each clip has a header band tinted per source app (consistent per app), with the app icon, type label, when it was copied, a preview, and a footer showing character count and a quick-paste number.
-- **All content types** - plain text, rich text, links, images, files, and colors.
+- **All content types** - plain text, HTML/RTF rich text, links, images, files, and colors.
 - **Pinboards** - save clips you reuse into named, color-tagged collections that never expire.
 - **iCloud sync** - optionally keep your history and pinboards in sync across your Macs via iCloud Drive.
 - **Instant search** - start typing to filter your whole history.

@@ -410,6 +410,20 @@ struct SnapshotMergerTests {
         ])
         #expect(!plain.sameContent(as: link))
         #expect(!firstRichText.sameContent(as: secondRichText))
+
+        let firstHTML = ClipItem(
+            type: .richText,
+            text: "HTML",
+            rtfData: Data("same".utf8),
+            htmlData: Data("first".utf8)
+        )
+        let secondHTML = ClipItem(
+            type: .richText,
+            text: "HTML",
+            rtfData: Data("same".utf8),
+            htmlData: Data("second".utf8)
+        )
+        #expect(!firstHTML.sameContent(as: secondHTML))
     }
 
     private func item(

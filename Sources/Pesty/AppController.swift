@@ -145,19 +145,23 @@ final class AppController: NSObject, NSApplicationDelegate {
         startKeyMonitor()
     }
 
-    func hideBar() {
+    func hideBar(immediately: Bool = false) {
         stopKeyMonitor()
-        barController?.hide()
+        if immediately {
+            barController?.hideImmediately()
+        } else {
+            barController?.hide()
+        }
     }
 
     func pasteSelected(mode: PasteService.PasteMode = .formatted) {
         guard let item = store.selectedItem else { return }
-        hideBar()
+        hideBar(immediately: true)
         PasteService.paste(item, into: previousApp, monitor: monitor, mode: mode)
     }
 
     func pasteItem(_ item: ClipItem) {
-        hideBar()
+        hideBar(immediately: true)
         PasteService.paste(item, into: previousApp, monitor: monitor)
     }
 

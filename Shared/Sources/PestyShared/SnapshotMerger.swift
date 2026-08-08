@@ -174,6 +174,7 @@ public enum SnapshotMerger {
             item.type.rawValue,
             item.text ?? "",
             item.rtfData?.base64EncodedString() ?? "",
+            item.htmlData?.base64EncodedString() ?? "",
             item.imageFileName ?? "",
             item.imageHash ?? "",
             fileURLs,
@@ -317,6 +318,7 @@ private extension ClipItem {
             return "rtf:" + [
                 text ?? "",
                 rtfData?.base64EncodedString() ?? "",
+                htmlData?.base64EncodedString() ?? "",
             ].map(stableComponent).joined()
         case .link:
             return "link:" + stableComponent(text ?? "")

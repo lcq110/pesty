@@ -24,6 +24,8 @@ All notable changes to Pesty are documented here. The format is based on
   are used only on the local release Mac.
 
 ### Fixed
+- Formatted paste now preserves HTML as well as RTF, and direct paste closes the
+  bar immediately before using a faster unified target/Shift readiness check.
 - Clipboard cards now select immediately, load cached image thumbnails off the
   main actor, and reserve animated centering for keyboard navigation.
 - Direct paste now waits for Shift to be released before sending `Command+V`,

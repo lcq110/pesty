@@ -42,8 +42,10 @@ struct CloudKitSnapshotPayloadTests {
         return PestySnapshot(
             history: [
                 ClipItem(
-                    type: .text,
+                    type: .richText,
                     text: "CloudKit payload",
+                    rtfData: Data("{\\rtf1 CloudKit payload}".utf8),
+                    htmlData: Data("<strong>CloudKit payload</strong>".utf8),
                     createdAt: date
                 )
             ],

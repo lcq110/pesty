@@ -89,6 +89,11 @@ final class BarWindowController: NSWindowController, NSWindowDelegate {
         })
     }
 
+    func hideImmediately() {
+        isPresenting = false
+        window?.orderOut(nil)
+    }
+
     func windowDidResignKey(_ notification: Notification) {
         guard !isPresenting, !AppController.shared.suppressAutoHide else { return }
         AppController.shared.hideBar()

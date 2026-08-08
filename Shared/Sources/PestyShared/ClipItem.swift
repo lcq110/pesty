@@ -5,6 +5,7 @@ public struct ClipItem: Identifiable, Codable, Equatable, Hashable, Sendable {
     public var type: ClipType
     public var text: String?
     public var rtfData: Data?
+    public var htmlData: Data?
     public var imageFileName: String?
     public var imageHash: String?
     public var fileURLs: [String]
@@ -20,6 +21,7 @@ public struct ClipItem: Identifiable, Codable, Equatable, Hashable, Sendable {
         type: ClipType,
         text: String? = nil,
         rtfData: Data? = nil,
+        htmlData: Data? = nil,
         imageFileName: String? = nil,
         imageHash: String? = nil,
         fileURLs: [String] = [],
@@ -34,6 +36,7 @@ public struct ClipItem: Identifiable, Codable, Equatable, Hashable, Sendable {
         self.type = type
         self.text = text
         self.rtfData = rtfData
+        self.htmlData = htmlData
         self.imageFileName = imageFileName
         self.imageHash = imageHash
         self.fileURLs = fileURLs
@@ -101,7 +104,9 @@ public struct ClipItem: Identifiable, Codable, Equatable, Hashable, Sendable {
         case .text, .link:
             return text == other.text
         case .richText:
-            return text == other.text && rtfData == other.rtfData
+            return text == other.text
+                && rtfData == other.rtfData
+                && htmlData == other.htmlData
         }
     }
 }
@@ -112,6 +117,7 @@ extension ClipItem {
         case type
         case text
         case rtfData
+        case htmlData
         case imageFileName
         case imageHash
         case fileURLs
@@ -129,6 +135,7 @@ extension ClipItem {
         type = try container.decode(ClipType.self, forKey: .type)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         rtfData = try container.decodeIfPresent(Data.self, forKey: .rtfData)
+        htmlData = try container.decodeIfPresent(Data.self, forKey: .htmlData)
         imageFileName = try container.decodeIfPresent(String.self, forKey: .imageFileName)
         imageHash = try container.decodeIfPresent(String.self, forKey: .imageHash)
         fileURLs = try container.decodeIfPresent([String].self, forKey: .fileURLs) ?? []

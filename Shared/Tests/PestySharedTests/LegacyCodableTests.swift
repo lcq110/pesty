@@ -38,6 +38,7 @@ struct LegacyCodableTests {
         #expect(snapshot.tombstones.isEmpty)
         #expect(snapshot.sharedPinboardReferences.isEmpty)
         #expect(snapshot.history.first?.type == .richText)
+        #expect(snapshot.history.first?.htmlData == nil)
         #expect(snapshot.history.first?.fileURLs == [])
         #expect(snapshot.history.first?.updatedAt == snapshot.history.first?.createdAt)
         #expect(snapshot.pinboards.first?.name == "Legacy board")
