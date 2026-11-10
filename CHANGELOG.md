@@ -7,6 +7,10 @@ All notable changes to Pesty are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- A visible, focusable search field with `Command+F`, native text input, and the
+  existing type-to-search workflow.
+- Multi-card selection with Command-click, Shift-click, Shift-arrow, and
+  Command+A; selected cards paste separately from left to right.
 - Text, rich-text, and link cards can be edited from the context menu or with
   `Command+E`; saving creates a new history card and leaves the original intact.
 - `Return` pastes rich text with formatting, while `Shift+Return` pastes its

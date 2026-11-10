@@ -3,6 +3,7 @@ import SwiftUI
 struct BarView: View {
     @Bindable private var store = ClipboardStore.shared
     @Bindable private var settings = Settings.shared
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         ZStack {
@@ -17,6 +18,15 @@ struct BarView: View {
         }
         .clipShape(RoundedCorners(radius: Theme.cornerRadius, corners: [.topLeft, .topRight]))
         .ignoresSafeArea()
+        .onChange(of: searchFocused) {
+            store.searchFieldFocused = searchFocused
+        }
+        .onChange(of: store.searchFieldFocused) {
+            searchFocused = store.searchFieldFocused
+        }
+        .onChange(of: store.searchText) {
+            store.selectFirst()
+        }
         .sheet(item: $store.editingItem, onDismiss: {
             AppController.shared.finishClipEditing()
         }) { item in
@@ -29,7 +39,11 @@ struct BarView: View {
     private var topBar: some View {
         HStack(spacing: 14) {
             syncButton
-            searchIndicator
+            searchField
+            if store.selectedItems.count > 1 {
+                multiPasteButton
+                    .layoutPriority(2)
+            }
             PinboardTabs()
                 .layoutPriority(1)
             Spacer(minLength: 8)
@@ -51,16 +65,17 @@ struct BarView: View {
         .help(settings.iCloudSync ? "iCloud sync on" : "Turn on iCloud sync")
     }
 
-    private var searchIndicator: some View {
+    private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(store.searchText.isEmpty ? Theme.textSecondary : Theme.textPrimary)
+                .foregroundStyle(Theme.textSecondary)
+            TextField("Search", text: $store.searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.textPrimary)
+                .focused($searchFocused)
             if !store.searchText.isEmpty {
-                Text(store.searchText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
                 Button { store.searchText = ""; store.selectFirst() } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 12)).foregroundStyle(Theme.textTertiary)
@@ -68,10 +83,20 @@ struct BarView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, store.searchText.isEmpty ? 0 : 10)
+        .padding(.horizontal, 10)
+        .frame(width: 210)
         .frame(height: 30)
-        .background(store.searchText.isEmpty ? Color.clear : Theme.fieldBG, in: Capsule())
-        .animation(.easeOut(duration: 0.15), value: store.searchText.isEmpty)
+        .background(Theme.fieldBG, in: Capsule())
+        .help("Search clips (Command-F)")
+    }
+
+    private var multiPasteButton: some View {
+        Button("Paste \(store.selectedItems.count) Separately") {
+            AppController.shared.pasteSelected()
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+        .tint(Theme.selection)
     }
 
     private var moreMenu: some View {
@@ -101,7 +126,7 @@ struct BarView: View {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         ClipCardView(item: item,
                                      index: index,
-                                     selected: item.id == store.selectedID)
+                                     selected: store.selectedIDs.contains(item.id))
                             .id(item.id)
                             .transition(.asymmetric(
                                 insertion: .scale(scale: 0.92).combined(with: .opacity),

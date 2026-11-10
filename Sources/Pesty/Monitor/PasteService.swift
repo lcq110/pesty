@@ -54,50 +54,82 @@ enum PasteService {
                       into targetApp: NSRunningApplication?,
                       monitor: ClipboardMonitor,
                       mode: PasteMode = .formatted) {
-        let change = copy(item, mode: mode)
-        monitor.suppressUntilChangeCount = change
-        if Settings.shared.playSound { NSSound(named: "Pop")?.play() }
+        paste([item], into: targetApp, monitor: monitor, mode: mode)
+    }
 
-        guard let target = targetApp, !target.isTerminated else { return }
+    static func paste(_ items: [ClipItem],
+                      into targetApp: NSRunningApplication?,
+                      monitor: ClipboardMonitor,
+                      mode: PasteMode = .formatted) {
+        guard let first = items.first else { return }
+
+        guard let target = targetApp, !target.isTerminated else {
+            prepare(first, monitor: monitor, mode: mode)
+            return
+        }
 
         #if MAS
-        // Mac App Store (sandboxed) build: copy the clip and return focus to the
-        // app the user came from so they can paste with ⌘V. No Accessibility
-        // APIs and no synthetic keystrokes are used.
+        prepare(first, monitor: monitor, mode: mode)
         target.activate()
         #else
-        // Direct-download build: optionally paste straight into the active app by
-        // synthesizing ⌘V. This requires the user's Accessibility grant.
-        guard Settings.shared.pasteDirectly else { return }
+        guard Settings.shared.pasteDirectly else {
+            prepare(first, monitor: monitor, mode: mode)
+            return
+        }
         guard AXIsProcessTrusted() else {
+            prepare(first, monitor: monitor, mode: mode)
             ensureAccessibility(prompt: true)
             return
         }
         target.activate()
-        pasteWhenReady(target, attempts: 100)
+        pasteWhenReady(items, at: 0, into: target, monitor: monitor, mode: mode, attempts: 100)
         #endif
     }
 
+    private static func prepare(_ item: ClipItem,
+                                monitor: ClipboardMonitor,
+                                mode: PasteMode) {
+        let change = copy(item, mode: mode)
+        monitor.suppressUntilChangeCount = change
+        if Settings.shared.playSound { NSSound(named: "Pop")?.play() }
+    }
+
     #if !MAS
-    private static func pasteWhenReady(_ app: NSRunningApplication, attempts: Int) {
+    private static func pasteWhenReady(_ items: [ClipItem],
+                                       at index: Int,
+                                       into app: NSRunningApplication,
+                                       monitor: ClipboardMonitor,
+                                       mode: PasteMode,
+                                       attempts: Int) {
         guard !app.isTerminated else { return }
         let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
             == app.processIdentifier
         if !isFrontmost {
             guard attempts > 0 else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                pasteWhenReady(app, attempts: attempts - 1)
+                pasteWhenReady(items, at: index, into: app, monitor: monitor,
+                               mode: mode, attempts: attempts - 1)
             }
             return
         }
 
         if CGEventSource.flagsState(.combinedSessionState).contains(.maskShift) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                pasteWhenReady(app, attempts: attempts)
+                pasteWhenReady(items, at: index, into: app, monitor: monitor,
+                               mode: mode, attempts: attempts)
             }
             return
         }
+        prepare(items[index], monitor: monitor, mode: mode)
         sendCommandV()
+
+        let next = index + 1
+        if next < items.count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                pasteWhenReady(items, at: next, into: app, monitor: monitor,
+                               mode: mode, attempts: 100)
+            }
+        }
     }
 
     private static func sendCommandV() {

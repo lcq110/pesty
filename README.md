@@ -38,7 +38,8 @@ It is a faithful, native reimplementation of the Paste experience - built in **S
 - **All content types** - plain text, HTML/RTF rich text, links, images, files, and colors.
 - **Pinboards** - save clips you reuse into named, color-tagged collections that never expire.
 - **iCloud sync** - optionally keep your history and pinboards in sync across your Macs via iCloud Drive.
-- **Instant search** - start typing to filter your whole history.
+- **Instant search** - use the visible search field, press `⌘F`, or start typing to filter your history.
+- **Multi-select paste** - select cards with `⌘` or `⇧`, then paste each card separately from left to right.
 - **Edit as new** - edit text, rich-text, or link cards while keeping the original card unchanged.
 - **Keyboard-first** - arrow keys to move, `return` to paste, `⌘1`–`⌘9` to quick-paste, `⌘⌫` to delete, `esc` to close.
 - **Paste directly** - drops the clip into the app you were using, no manual `⌘V` needed.
@@ -75,12 +76,14 @@ The build is signed with a Developer ID and notarized by Apple, so it opens with
 | --- | --- |
 | `⌘⇧V` | Show / hide the strip (configurable) |
 | `←` `→` `↑` `↓` | Move selection |
-| `return` | Paste selected clip with formatting |
-| `⇧return` | Paste selected text-based clip without formatting |
+| `⇧` + arrows, `⌘A` | Extend selection or select all visible cards |
+| `⌘`-click, `⇧`-click | Toggle cards or select a range |
+| `return` | Paste selected cards separately from left to right |
+| `⇧return` | Paste selected text-based cards without formatting |
 | `⌘E` | Edit selected text or link as a new card |
 | `⌘1`–`⌘9` | Quick-paste the Nth clip |
 | `⌘⌫` | Delete selected clip |
-| type anything | Search |
+| `⌘F` or type anything | Search |
 | `esc` | Clear search, then close |
 
 ## Build from source

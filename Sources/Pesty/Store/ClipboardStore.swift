@@ -19,9 +19,13 @@ final class ClipboardStore {
 
     var source: BarSource = .history
     var searchText: String = ""
-    var selectedID: UUID?
+    private(set) var selectedID: UUID?
+    private(set) var selectedIDs: Set<UUID> = []
+    var searchFieldFocused = false
     var editingItem: ClipItem?
     private(set) var selectionScrollRequest = 0
+
+    private var selectionAnchorID: UUID?
 
     var historyLimit: Int {
         get { Settings.shared.historyLimit }
@@ -98,6 +102,10 @@ final class ClipboardStore {
         return visibleItems.first(where: { $0.id == id })
     }
 
+    var selectedItems: [ClipItem] {
+        visibleItems.filter { selectedIDs.contains($0.id) }
+    }
+
     func addCaptured(_ item: ClipItem) {
         if let idx = history.firstIndex(where: { $0.sameContent(as: item) }) {
             if item.imageFileName != history[idx].imageFileName { deleteImageFile(item) }
@@ -105,14 +113,14 @@ final class ClipboardStore {
             existing.createdAt = item.createdAt
             existing.updatedAt = item.updatedAt
             history.insert(existing, at: 0)
-            if source == .history && searchText.isEmpty { selectedID = existing.id }
+            if source == .history && searchText.isEmpty { selectOnly(existing.id) }
             scheduleSave()
             return
         }
         history.insert(item, at: 0)
         trimHistory()
         if source == .history && searchText.isEmpty {
-            selectedID = item.id
+            selectOnly(item.id)
         }
         scheduleSave()
     }
@@ -136,7 +144,7 @@ final class ClipboardStore {
         snapshot.deleteClip(id: item.id)
         apply(snapshot)
         deleteImageFile(item)
-        if selectedID == item.id { selectFirst() }
+        if selectedIDs.contains(item.id) { selectFirst() }
         scheduleSave()
     }
 
@@ -145,7 +153,7 @@ final class ClipboardStore {
         var snapshot = currentSnapshot
         snapshot.clearHistory()
         apply(snapshot)
-        selectedID = nil
+        selectOnly(nil)
         for item in old { deleteImageFile(item) }
         scheduleSave()
     }
@@ -212,28 +220,74 @@ final class ClipboardStore {
         trimHistory()
         source = .history
         searchText = ""
-        selectedID = copy.id
+        selectOnly(copy.id)
         selectionScrollRequest += 1
         scheduleSave()
         return copy
     }
 
     func selectFirst() {
-        selectedID = visibleItems.first?.id
+        selectOnly(visibleItems.first?.id)
         selectionScrollRequest += 1
     }
 
-    func moveSelection(by delta: Int) {
+    func selectAll() {
+        let items = visibleItems
+        selectedIDs = Set(items.map(\.id))
+        selectedID = selectedID.flatMap { id in
+            items.contains(where: { $0.id == id }) ? id : nil
+        } ?? items.first?.id
+        selectionAnchorID = selectedID
+    }
+
+    func select(_ id: UUID, extending: Bool = false, toggling: Bool = false) {
+        let items = visibleItems
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        searchFieldFocused = false
+
+        if extending {
+            let anchorID = selectionAnchorID ?? selectedID ?? id
+            let anchor = items.firstIndex(where: { $0.id == anchorID }) ?? index
+            selectedIDs = Set(items[min(anchor, index)...max(anchor, index)].map(\.id))
+            selectedID = id
+            selectionAnchorID = anchorID
+        } else if toggling {
+            if selectedIDs.remove(id) != nil {
+                if selectedID == id {
+                    selectedID = items.first(where: { selectedIDs.contains($0.id) })?.id
+                }
+            } else {
+                selectedIDs.insert(id)
+                selectedID = id
+            }
+            selectionAnchorID = selectedID
+        } else {
+            selectOnly(id)
+        }
+    }
+
+    func moveSelection(by delta: Int, extending: Bool = false) {
         let items = visibleItems
         guard !items.isEmpty else { return }
-        guard let id = selectedID, let idx = items.firstIndex(where: { $0.id == id }) else {
-            selectedID = items.first?.id
+        guard let selectedID, let current = items.firstIndex(where: { $0.id == selectedID }) else {
+            selectOnly(items.first?.id)
             selectionScrollRequest += 1
             return
         }
-        let next = max(0, min(items.count - 1, idx + delta))
-        selectedID = items[next].id
+        let next = max(0, min(items.count - 1, current + delta))
+        if extending {
+            if selectionAnchorID == nil { selectionAnchorID = selectedID }
+            select(items[next].id, extending: true)
+        } else {
+            selectOnly(items[next].id)
+        }
         selectionScrollRequest += 1
+    }
+
+    private func selectOnly(_ id: UUID?) {
+        selectedID = id
+        selectedIDs = id.map { [$0] } ?? []
+        selectionAnchorID = id
     }
 
     func imageURL(for item: ClipItem) -> URL? {

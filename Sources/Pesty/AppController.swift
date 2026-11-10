@@ -43,6 +43,13 @@ final class AppController: NSObject, NSApplicationDelegate {
             return
         }
 
+        if CommandLine.arguments.contains("--show") {
+            suppressAutoHide = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.showBar()
+            }
+        }
+
         if !Settings.shared.onboarded {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 self?.showSettings()
@@ -135,6 +142,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             previousApp = front
         }
         store.searchText = ""
+        store.searchFieldFocused = false
         store.source = .history
         store.selectFirst()
 
@@ -147,6 +155,7 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     func hideBar(immediately: Bool = false) {
         stopKeyMonitor()
+        store.searchFieldFocused = false
         if immediately {
             barController?.hideImmediately()
         } else {
@@ -155,9 +164,10 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
 
     func pasteSelected(mode: PasteService.PasteMode = .formatted) {
-        guard let item = store.selectedItem else { return }
+        let items = store.selectedItems
+        guard !items.isEmpty else { return }
         hideBar(immediately: true)
-        PasteService.paste(item, into: previousApp, monitor: monitor, mode: mode)
+        PasteService.paste(items, into: previousApp, monitor: monitor, mode: mode)
     }
 
     func pasteItem(_ item: ClipItem) {
@@ -222,6 +232,37 @@ final class AppController: NSObject, NSApplicationDelegate {
         let ctrl = flags.contains(.control)
         let opt = flags.contains(.option)
 
+        if cmd, code == kVK_ANSI_F {
+            store.searchFieldFocused = true
+            return nil
+        }
+
+        if store.searchFieldFocused {
+            switch code {
+            case kVK_Escape:
+                if store.searchText.isEmpty {
+                    store.searchFieldFocused = false
+                } else {
+                    store.searchText = ""
+                }
+                return nil
+            case kVK_Return, kVK_ANSI_KeypadEnter:
+                store.searchFieldFocused = false
+                pasteSelected(mode: flags.contains(.shift) ? .plainText : .formatted)
+                return nil
+            case kVK_Tab:
+                store.searchFieldFocused = false
+                return nil
+            default:
+                return event
+            }
+        }
+
+        if cmd, code == kVK_ANSI_A {
+            store.selectAll()
+            return nil
+        }
+
         if cmd, let chars = event.charactersIgnoringModifiers, let n = Int(chars), (1...9).contains(n) {
             let items = store.visibleItems
             if n <= items.count { pasteItem(items[n - 1]) }
@@ -243,9 +284,9 @@ final class AppController: NSObject, NSApplicationDelegate {
             pasteSelected(mode: flags.contains(.shift) ? .plainText : .formatted)
             return nil
         case kVK_LeftArrow, kVK_UpArrow:
-            store.moveSelection(by: -1); return nil
+            store.moveSelection(by: -1, extending: flags.contains(.shift)); return nil
         case kVK_RightArrow, kVK_DownArrow:
-            store.moveSelection(by: 1); return nil
+            store.moveSelection(by: 1, extending: flags.contains(.shift)); return nil
         case kVK_Delete:
             if cmd, let sel = store.selectedItem { store.delete(sel); return nil }
             if !store.searchText.isEmpty {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ClipCardView: View {
@@ -11,7 +12,12 @@ struct ClipCardView: View {
 
     var body: some View {
         Button {
-            store.selectedID = item.id
+            let flags = NSEvent.modifierFlags
+            store.select(
+                item.id,
+                extending: flags.contains(.shift),
+                toggling: flags.contains(.command)
+            )
         } label: {
             VStack(spacing: 0) {
                 header
@@ -180,7 +186,13 @@ struct ClipCardView: View {
             Button("Edit as New Card…") { AppController.shared.editItem(item) }
             Divider()
         }
-        Button("Paste") { AppController.shared.pasteItem(item) }
+        if selected && store.selectedItems.count > 1 {
+            Button("Paste \(store.selectedItems.count) Items Separately") {
+                AppController.shared.pasteSelected()
+            }
+        } else {
+            Button("Paste") { AppController.shared.pasteItem(item) }
+        }
         Button("Copy") { AppController.shared.copyItem(item) }
         Divider()
         if !store.pinboards.isEmpty {
